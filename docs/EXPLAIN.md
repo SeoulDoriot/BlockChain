@@ -7,7 +7,7 @@ someone who has not seen the code. Each phase appends its own section.
 
 - Phase 0 — Scaffold
 - Phase 1 — Smart Contract
-- _Phase 2 — Next.js + Supabase Foundation (pending)_
+- Phase 2 — Next.js + Supabase Foundation
 
 ## Phase 0 — Scaffold
 
@@ -191,3 +191,128 @@ an attacker would have to know. A production system wanting stronger guarantees
 would add a secret salt held server-side, which would make guessing impossible
 without also breaching the database. That is a deliberate, documented trade-off
 rather than an oversight.
+
+## Phase 2 — Next.js + Supabase Foundation
+
+Phase 1 built the part that cannot be tampered with. Phase 2 builds the part
+people actually use, and the question it has to answer is: **who is allowed to
+do what?**
+
+### The auth flow
+
+When a member of staff signs in, Supabase hands the browser a signed token
+stored in a cookie. Every request afterwards carries that cookie. Three pieces
+work together:
+
+**1. `proxy.ts`** — runs before any page renders. In Next.js 16 this file used
+to be called `middleware.ts`; the framework renamed it to Proxy because it sits
+in front of the app like a network proxy rather than acting like Express
+middleware. It does two jobs: it refreshes the session so the token does not go
+stale mid-visit, and it redirects anyone without a valid session away from
+`/dashboard/*` to `/login`.
+
+**2. `requireStaff()` in `lib/auth.ts`** — runs inside the pages and routes
+themselves. The proxy is a coarse gate; this is the fine one. It verifies the
+token, loads the caller's `staff` row and their organisation, and throws a 401
+(not signed in) or 403 (signed in, but not staff here) otherwise.
+
+**3. Row-level security** — runs inside the database, underneath both.
+
+The redundancy is deliberate. The proxy could be bypassed by a bug in a route
+matcher; `requireStaff()` could be forgotten on a new page. RLS is the layer
+that still holds when the other two fail.
+
+### One rule worth stating plainly: never `getSession()`
+
+Supabase offers `getSession()`, which reads the session from the cookie. It is
+fast, and it is **not safe for authorisation**, because it does not verify that
+the cookie is genuine. Anyone can write whatever they like into their own
+browser's cookies.
+
+This project uses `getClaims()`, which verifies the token's cryptographic
+signature before believing a word of it, with `getUser()` for the canonical
+user record. The difference is the difference between reading a name badge and
+checking a passport.
+
+### RLS in simple words
+
+Row-level security means the **database itself** decides which rows a given
+person is allowed to see, instead of the application deciding and the database
+obediently handing over everything.
+
+Without RLS, security lives in application code: every query has to remember to
+add "…and only where this row belongs to the right university." Forget that
+clause once, in one place, and you have leaked every certificate in the system.
+It is a rule enforced by everyone remembering it, which means it is a rule
+enforced by nobody.
+
+With RLS, the rule lives next to the data:
+
+```sql
+create policy "staff read own org certificates"
+  on public.certificates for select
+  to authenticated
+  using (org_id = public.current_org_id());
+```
+
+Now a query for *all* certificates silently returns only that person's
+organisation's certificates. A careless query and a careful query produce the
+same safe answer. The safe path is the default path, which is the only kind of
+security rule that survives contact with a real codebase.
+
+The policies here say, in plain English:
+
+- Staff can read their own organisation's data. Not other organisations'.
+- Only admins and issuers can create or change certificates. Viewers can look.
+- Only admins can manage staff and courses.
+- Only draft certificates can be deleted. An issued one is on the blockchain
+  and deleting the database row would not unsay it.
+- **Nobody** can write to the audit log through the normal client. An audit
+  trail that the audited party can edit is not an audit trail.
+- Anonymous visitors get no direct table access whatsoever. The public verify
+  page reads through a server route that hands back a whitelisted set of
+  columns — never the recipient's email address.
+
+### Why the service role key is server-only
+
+Supabase issues two keys.
+
+The **anon key** is public by design. It is in the browser bundle, and that is
+fine, because every request it makes is still filtered by RLS. It is a key to
+the front door of a building where every individual room is still locked.
+
+The **service role key** bypasses RLS completely. It is not a key to a room; it
+is the master key, plus permission to ignore every lock in the building. With
+it, anyone can read every certificate, every email address, and rewrite any row.
+
+So `lib/supabase/admin.ts` begins with:
+
+```ts
+import "server-only";
+```
+
+That line makes the build **fail** if any client component ever imports this
+module, directly or through a chain of imports. It converts a catastrophic
+runtime leak into a compile error that cannot be merged. The same guard is on
+`lib/env.server.ts`, which holds the key itself, and on `lib/auth.ts`.
+
+The service role is used in exactly three places: signing short-lived URLs for
+private PDFs, writing audit rows, and the seed script. Everything a signed-in
+member of staff does goes through the ordinary client, where RLS still applies.
+
+### Private storage
+
+The `certificates` storage bucket is created private, and — deliberately — with
+**no** access policies at all. With RLS on and no policy granting anything,
+neither anonymous nor signed-in users can fetch an object directly, even with
+the exact path. PDFs reach people only through short-lived signed URLs minted on
+the server. A certificate PDF is not something that should be downloadable by
+anyone who guesses a filename.
+
+### Health check
+
+`/api/health` verifies three things independently: the database answers, the RPC
+endpoint reports the chain id we expect (catching a config pointing at the wrong
+network), and there is real contract bytecode at the configured address
+(catching a typo'd or not-yet-deployed address). It returns 503 unless all three
+pass, so it can be wired to an uptime monitor as-is.
