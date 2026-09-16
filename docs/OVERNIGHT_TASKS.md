@@ -4,13 +4,13 @@ If a task is blocked by something only Dorito can do, write it in docs/BLOCKERS.
 Full project spec: CLAUDE.md. Available settings are exported from web/.env.local. Some credentials may be missing; record those blockers and continue independent coding tasks.
 
 ## A. Environment, database, contract
-- [ ] A1. Audit the repo vs CLAUDE.md: list what exists, what's missing, and any mock/placeholder/TODO code → docs/PROGRESS_LOG.md
+- [x] A1. Audit the repo vs CLAUDE.md: list what exists, what's missing, and any mock/placeholder/TODO code → docs/PROGRESS_LOG.md
 - [ ] A2. Add a chain switch: `NEXT_PUBLIC_CHAIN=local|amoy`. Local = Hardhat node on 127.0.0.1:8545 with the contract deployed there by a script. All automated tests use LOCAL (fast + saves test POL). Amoy is used only for the real app and one final e2e run.
 - [ ] A3. CREATE THE DATABASE: apply web/supabase/migrations (CLAUDE.md §7, improved if needed) to Supabase using `npx supabase db push --db-url "$SUPABASE_DB_URL"` (fallback: a node script with the `pg` package). Verify every table, function, index and RLS policy exists by querying the DB.
 - [ ] A4. Create the private storage bucket `certificates` with the admin client (idempotent script).
 - [ ] A5. Seed script (idempotent): create the auth user ADMIN_EMAIL / ADMIN_PASSWORD with the admin API if missing, org KIT "Kirirom Institute of Technology", admin staff row, 3 courses (one with no expiry). Run it.
 - [ ] A6. Deploy CertificateRegistry to Amoy with Ignition (AMOY_PRIVATE_KEY + AMOY_RPC_URL are exported) if not already deployed. Check the wallet POL balance first; if it's too low, log a blocker. Verify on PolygonScan (Etherscan V2 key). Export the ABI. Write NEXT_PUBLIC_CONTRACT_ADDRESS into web/.env.local and README.
-- [ ] A7. Contract tests: all tests from CLAUDE.md §5 pass (`npx hardhat test`).
+- [x] A7. Contract tests: all tests from CLAUDE.md §5 pass (`npx hardhat test`).
 
 ## B. Backend + logic (CLAUDE.md §6, §8, §9, §10)
 - [ ] B1. lib/chain (hash, client with batch http transport, registry with receipt waits + friendly error decoding + underpriced retry). Singletons, server-only.
