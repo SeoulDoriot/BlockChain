@@ -323,7 +323,7 @@ count_total() { local n; n="$(grep -cE '^- \[( |x)\]' docs/OVERNIGHT_TASKS.md 2>
 
 hit_usage_limit() {  # only trust the final lines of a failed round
   local log="$1"
-  tail -n 5 "$log" | grep -qiE 'usage limit|limit (reached|will reset)|resets? (at|in) |hit your limit|out of (extra )?usage|rate_limit_error|overloaded'
+  tail -n 5 "$log" | grep -qiE 'usage limit|session limit|limit (reached|will reset)|resets? |hit your limit|out of (extra )?usage|rate_limit_error|rate_limit_event|overloaded'
 }
 
 # -----------------------------------------------------------------------------
