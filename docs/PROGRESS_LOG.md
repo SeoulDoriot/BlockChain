@@ -23,3 +23,5 @@
 2026-09-17 07:00 - round start - Write/Edit still denied, using node -e appends only. Running checks.
 
 2026-09-17 07:05 - round check-in - checks green: contracts 30/30, vitest 41/41, tsc clean, lint clean. Write/Edit still denied in dont-ask mode, credentials still empty. No net-new code.
+
+2026-09-17 07:30 - round check-in - Write/Edit still denied under dont-ask mode. Verified checks: hardhat 30/30, lint clean, tsc clean, vitest 41/41. No net-new code possible without tool allowlist widening or --dangerously-skip-permissions. Credentials still empty (A3-A6, B3 SMTP, C2-C4, G2 blocked).
