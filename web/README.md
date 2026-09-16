@@ -74,6 +74,29 @@ contract, the third check is expected to fail.
 npm test
 ```
 
+41 unit tests covering hash canonicalisation (including Khmer and Unicode
+normalisation), status derivation, and QR payload parsing.
+
+## End-to-end tests
+
+These run against a **real** Polygon Amoy deployment and a **real** Supabase
+project — no mocks. They need:
+
+1. A fully populated `.env.local`, including `NEXT_PUBLIC_CONTRACT_ADDRESS`
+   pointing at the deployed registry.
+2. A seeded staff account, exported as `E2E_EMAIL` and `E2E_PASSWORD`.
+3. A build, because the suite starts `npm run start`.
+
+```bash
+npm run build
+E2E_EMAIL=you@kit.edu.kh E2E_PASSWORD=... npm run test:e2e
+```
+
+The suite walks the full lifecycle: sign in → issue → verify Valid → tamper
+with the row → restore → revoke → verify Revoked → near-expiry certificate →
+Expired → renew → Valid → QR route. Each chain write waits for a receipt, so
+expect it to take several minutes.
+
 ## Layout
 
 | Path | What |
