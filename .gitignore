@@ -30,6 +30,9 @@ coverage/
 
 # logs
 *.log
+.overnight/
+.overnight-done
+.overnight-stop
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -40,3 +43,5 @@ pnpm-debug.log*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.env*
+!.env.example
