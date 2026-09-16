@@ -15,7 +15,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-const email = (process.argv[2] ?? process.env.SEED_ADMIN_EMAIL ?? "")
+const email = (process.argv[2] ?? process.env.SEED_ADMIN_EMAIL ?? "vy.seoul25@kit.edu.kh")
   .trim()
   .toLowerCase();
 
