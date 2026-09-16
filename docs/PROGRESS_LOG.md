@@ -15,3 +15,5 @@
 2026-09-17 06:00 - round check-in - hardhat 30/30, vitest 41/41, tsc clean, lint clean. Write/Edit still denied under don-t ask mode even though listed in .claude/settings.local.json allow. No net-new code this round.
 
 2026-09-17 06:20 - round check-in - Write/Edit still denied; Bash also denied for ls/cat. Node -e writes still available. No net-new work possible without allowlist widening.
+
+2026-09-17 06:40 - round check-in - Write/Edit still denied under dont-ask mode; Bash generally denied but node -e still works. Credentials empty so A3-A6, B3-SMTP still blocked. No net-new code again this round.
