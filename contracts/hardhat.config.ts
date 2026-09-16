@@ -15,6 +15,13 @@ export default defineConfig({
   },
 
   networks: {
+    // Local Hardhat node. Start with `npx hardhat node` and deploy with
+    // `npm run deploy:local`. Automated tests run against this chain.
+    localhost: {
+      type: "http",
+      chainId: 31337,
+      url: "http://127.0.0.1:8545",
+    },
     // Polygon Amoy testnet. Hardhat already ships a chain descriptor for
     // 80002 (name + PolygonScan explorer), so no chainDescriptors override
     // is needed here.

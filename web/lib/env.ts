@@ -15,6 +15,7 @@ const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   NEXT_PUBLIC_APP_URL: z.string().url(),
+  NEXT_PUBLIC_CHAIN: z.enum(["local", "amoy"]).default("amoy"),
   NEXT_PUBLIC_CHAIN_ID: z.coerce.number().int().positive(),
   NEXT_PUBLIC_CONTRACT_ADDRESS: z
     .string()
@@ -26,6 +27,7 @@ const parsed = publicSchema.safeParse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  NEXT_PUBLIC_CHAIN: process.env.NEXT_PUBLIC_CHAIN,
   NEXT_PUBLIC_CHAIN_ID: process.env.NEXT_PUBLIC_CHAIN_ID,
   NEXT_PUBLIC_CONTRACT_ADDRESS: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
   NEXT_PUBLIC_EXPLORER_URL: process.env.NEXT_PUBLIC_EXPLORER_URL,
@@ -39,3 +41,6 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+/** True when NEXT_PUBLIC_CHAIN=local — a Hardhat node on 127.0.0.1:8545. */
+export const isLocalChain = env.NEXT_PUBLIC_CHAIN === "local";

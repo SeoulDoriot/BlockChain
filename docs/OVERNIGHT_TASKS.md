@@ -5,7 +5,7 @@ Full project spec: CLAUDE.md. Available settings are exported from web/.env.loca
 
 ## A. Environment, database, contract
 - [x] A1. Audit the repo vs CLAUDE.md: list what exists, what's missing, and any mock/placeholder/TODO code → docs/PROGRESS_LOG.md
-- [ ] A2. Add a chain switch: `NEXT_PUBLIC_CHAIN=local|amoy`. Local = Hardhat node on 127.0.0.1:8545 with the contract deployed there by a script. All automated tests use LOCAL (fast + saves test POL). Amoy is used only for the real app and one final e2e run.
+- [x] A2. Add a chain switch: `NEXT_PUBLIC_CHAIN=local|amoy`. Local = Hardhat node on 127.0.0.1:8545 with the contract deployed there by a script. All automated tests use LOCAL (fast + saves test POL). Amoy is used only for the real app and one final e2e run.
 - [ ] A3. CREATE THE DATABASE: apply web/supabase/migrations (CLAUDE.md §7, improved if needed) to Supabase using `npx supabase db push --db-url "$SUPABASE_DB_URL"` (fallback: a node script with the `pg` package). Verify every table, function, index and RLS policy exists by querying the DB.
 - [ ] A4. Create the private storage bucket `certificates` with the admin client (idempotent script).
 - [ ] A5. Seed script (idempotent): create the auth user ADMIN_EMAIL / ADMIN_PASSWORD with the admin API if missing, org KIT "Kirirom Institute of Technology", admin staff row, 3 courses (one with no expiry). Run it.

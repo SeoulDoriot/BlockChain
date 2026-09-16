@@ -8,7 +8,9 @@
     "compile": "hardhat compile",
     "deploy:amoy": "hardhat ignition deploy ignition/modules/CertificateRegistry.ts --network amoy",
     "verify": "hardhat verify --network amoy",
-    "export-abi": "hardhat run scripts/export-abi.ts"
+    "export-abi": "hardhat run scripts/export-abi.ts",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy-local.ts --network localhost"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
