@@ -4,6 +4,13 @@ import { requireStaff, AuthError } from "@/lib/auth";
 import { signOut } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Every dashboard route reads the session cookie to authenticate, so none of
+ * them can be prerendered into a static shell. Opting out of instant-navigation
+ * validation tells Next.js this segment is expected to block on auth.
+ */
+export const instant = false;
+
 const NAV = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/certificates", label: "Certificates" },

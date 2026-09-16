@@ -1,16 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { LoginForm } from "@/components/login-form";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = { title: "Staff sign in" };
 
-export default async function LoginPage({
+/**
+ * searchParams is runtime data, so reading it here — inside Suspense — lets
+ * the rest of the page prerender as a static shell.
+ */
+async function LoginFormWithRedirect({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
+  return <LoginForm next={next} />;
+}
 
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">Staff sign in</h1>
@@ -20,7 +33,9 @@ export default async function LoginPage({
       </p>
 
       <div className="mt-8">
-        <LoginForm next={next} />
+        <Suspense fallback={<Skeleton className="h-56 w-full rounded-lg" />}>
+          <LoginFormWithRedirect searchParams={searchParams} />
+        </Suspense>
       </div>
 
       <Link

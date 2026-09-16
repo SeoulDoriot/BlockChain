@@ -129,3 +129,39 @@ describe("deriveStatus", () => {
     ).toBe("expired");
   });
 });
+
+// --- QR payload parsing -----------------------------------------------------
+
+import { extractCertificateId } from "@/components/scan-launcher";
+
+describe("extractCertificateId", () => {
+  const id = "3f1a7b2c-8d4e-4f60-9a1b-2c3d4e5f6071";
+
+  it("pulls the id out of a full verify URL", () => {
+    expect(extractCertificateId(`https://example.com/verify/${id}`)).toBe(id);
+  });
+
+  it("handles a URL with a query string", () => {
+    expect(extractCertificateId(`https://example.com/verify/${id}?src=qr`)).toBe(id);
+  });
+
+  it("accepts a bare id", () => {
+    expect(extractCertificateId(id)).toBe(id);
+  });
+
+  it("trims surrounding whitespace", () => {
+    expect(extractCertificateId(`  ${id}  `)).toBe(id);
+  });
+
+  it("rejects an unrelated URL", () => {
+    expect(extractCertificateId("https://example.com/about")).toBeNull();
+  });
+
+  it("rejects arbitrary text", () => {
+    expect(extractCertificateId("hello world")).toBeNull();
+  });
+
+  it("rejects an empty string", () => {
+    expect(extractCertificateId("   ")).toBeNull();
+  });
+});

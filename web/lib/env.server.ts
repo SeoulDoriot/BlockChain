@@ -21,6 +21,9 @@ const serverSchema = z.object({
   SMTP_USER: z.string().min(1),
   SMTP_PASSWORD: z.string().min(1),
   SMTP_FROM: z.string().email(),
+
+  /** Shared secret protecting the expiry-reminder cron route. */
+  CRON_SECRET: z.string().min(16, "Use at least 16 characters."),
 });
 
 const parsed = serverSchema.safeParse(process.env);

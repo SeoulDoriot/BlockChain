@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import type { Hex } from "viem";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -77,9 +78,11 @@ export async function issueCertificate(
     txHash: receipt.txHash,
   });
 
-  // 4. store it privately
+  // 4. store it privately, and fingerprint the exact bytes we generated so
+  //    an uploaded copy can be checked for tampering later
   const storagePath = pdfPath(input.orgId, input.certificateId);
   await uploadPdf(storagePath, pdf);
+  const pdfSha256 = createHash("sha256").update(pdf).digest("hex");
 
   // 5. record the anchor
   const { error } = await supabase
@@ -89,6 +92,7 @@ export async function issueCertificate(
       tx_hash: receipt.txHash,
       chain_id: env.NEXT_PUBLIC_CHAIN_ID,
       pdf_path: storagePath,
+      pdf_sha256: pdfSha256,
       status: "issued",
     })
     .eq("id", input.certificateId);

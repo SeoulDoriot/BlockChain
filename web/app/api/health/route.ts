@@ -3,8 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPublicClient, getContractAddress } from "@/lib/chain/client";
 import { env } from "@/lib/env";
 
-export const dynamic = "force-dynamic";
-
 type CheckResult =
   | { ok: true; detail: string }
   | { ok: false; error: string };

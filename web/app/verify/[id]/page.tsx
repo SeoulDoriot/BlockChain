@@ -32,7 +32,14 @@ function Field({
   );
 }
 
-async function VerificationResult({ id }: { id: string }) {
+async function VerificationResult({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  // params is runtime data. Reading it inside Suspense keeps the surrounding
+  // page prerenderable as a static shell.
+  const { id } = await params;
   const result = await verifyCertificateById(id);
 
   if (!result.found || !result.certificate) {
@@ -138,13 +145,11 @@ function ResultSkeleton() {
   );
 }
 
-export default async function VerifyPage({
+export default function VerifyPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <Link
@@ -160,7 +165,7 @@ export default async function VerifyPage({
 
       <div className="mt-6">
         <Suspense fallback={<ResultSkeleton />}>
-          <VerificationResult id={id} />
+          <VerificationResult params={params} />
         </Suspense>
       </div>
 
