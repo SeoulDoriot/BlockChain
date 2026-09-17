@@ -52,6 +52,10 @@ never been run.
 | Audit log | [lib/audit.ts](../web/lib/audit.ts) · [app/dashboard/audit/page.tsx](../web/app/dashboard/audit/page.tsx) | ✅ 16 entries recorded across issue / email / revoke / renew |
 | Multi-issuer admin (grant `ISSUER_ROLE`) | [app/dashboard/admin/page.tsx](../web/app/dashboard/admin/page.tsx) · [app/api/admin/issuers/route.ts](../web/app/api/admin/issuers/route.ts) | ✅ contract role logic (tests 4–6) · 🟡 UI path |
 | Rate limiting, no extra service | [0002_rate_limits.sql](../web/supabase/migrations/0002_rate_limits.sql) · [lib/rate-limit.ts](../web/lib/rate-limit.ts) | 🟡 |
+| Bulk CSV issue | [components/bulk-issue.tsx](../web/components/bulk-issue.tsx) · [lib/csv.ts](../web/lib/csv.ts) · [bulk page](../web/app/dashboard/certificates/bulk/page.tsx) | ✅ 3 e2e tests + 23 parser unit tests |
+| EN / ខ្មែរ toggle | [lib/i18n.ts](../web/lib/i18n.ts) · [components/locale-toggle.tsx](../web/components/locale-toggle.tsx) | ✅ e2e, including with JavaScript disabled |
+| LinkedIn add-to-profile + share | [components/share-certificate.tsx](../web/components/share-certificate.tsx) | ✅ e2e asserts the deep link carries no personal data |
+| Works without JavaScript | public pages render blocking | ✅ 3 e2e tests run with `javaScriptEnabled: false` |
 | Health check | [app/api/health/route.ts](../web/app/api/health/route.ts) | ✅ returns 200 with database, RPC and contract-bytecode all green |
 
 ## Not built
@@ -59,22 +63,18 @@ never been run.
 | Item | Why |
 | ---- | --- |
 | Amoy deployment + PolygonScan verification | Needs an RPC URL, a funded deployer key and an Etherscan key. Everything it would exercise is already proven on the local chain. |
-| Bulk CSV issue | Not reached. `issueBatch` exists in the contract and is tested (tests 15–17), so the expensive half is done; the CSV parser, progress UI and result download are not written. |
-| EN/ខ្មែរ toggle | Not reached. Hashing is already NFC-normalised and tested against Khmer input, so the data layer is ready for it. |
-| LinkedIn add-to-profile / share | Not reached. |
-| Lighthouse scores | Cannot be measured — needs a running app with real data. |
 
 ## What was actually verified
 
 | Check | Command | Result |
 | ----- | ------- | ------ |
 | Contract tests | `cd contracts && npm test` | ✅ 30 passing |
-| Web unit tests | `cd web && npm test` | ✅ 41 passing |
+| Web unit tests | `cd web && npm test` | ✅ 64 passing |
 | Typecheck | `npx tsc --noEmit` | ✅ clean |
 | Lint | `npm run lint` | ✅ clean |
 | Production build | `npm run build` | ✅ clean, 22 routes |
-| End-to-end | `npm run test:e2e` | ✅ **8 passing** against local Supabase + Hardhat chain |
+| End-to-end | `npm run test:e2e` | ✅ **14 passing** against local Supabase + Hardhat chain |
 | Migrations | `supabase db reset` | ✅ all 3 applied; 6 tables, RLS on all, 10 policies, 5 functions, private bucket, 8 indexes |
 | Email delivery | Mailpit | ✅ 7 messages with PDF attachments |
-| Lighthouse | — | ⛔ not run |
+| Lighthouse | `npx lighthouse` | ✅ **93–99 perf, 100 a11y, 100 best practices** on all 5 public pages — see [PERFORMANCE.md](PERFORMANCE.md) |
 | Amoy deployment | — | ⛔ needs owner credentials |
