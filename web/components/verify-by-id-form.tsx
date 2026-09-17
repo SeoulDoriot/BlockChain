@@ -11,11 +11,15 @@ import { Label } from "@/components/ui/label";
  * poor connection, so it ships no JavaScript for this at all. It also keeps
  * working with JS disabled.
  */
-export function VerifyByIdForm() {
+export function VerifyByIdForm({
+  labels,
+}: {
+  labels: { certificateId: string; hint: string; verify: string };
+}) {
   return (
     <form action="/verify" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-end">
       <div className="flex-1 space-y-2">
-        <Label htmlFor="certificate-id">Certificate ID</Label>
+        <Label htmlFor="certificate-id">{labels.certificateId}</Label>
         <Input
           id="certificate-id"
           name="id"
@@ -27,10 +31,10 @@ export function VerifyByIdForm() {
           aria-describedby="certificate-id-hint"
         />
         <p id="certificate-id-hint" className="text-xs text-muted-foreground">
-          Printed on the certificate, under the QR code.
+          {labels.hint}
         </p>
       </div>
-      <Button type="submit">Verify</Button>
+      <Button type="submit">{labels.verify}</Button>
     </form>
   );
 }

@@ -50,9 +50,14 @@ export default async function CertificatesPage({
     <>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Certificates</h1>
-        <Button asChild>
-          <Link href="/dashboard/certificates/new">Issue a certificate</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/dashboard/certificates/bulk">Bulk issue</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/certificates/new">Issue a certificate</Link>
+          </Button>
+        </div>
       </div>
 
       <form className="mt-6 flex flex-wrap gap-2" role="search">

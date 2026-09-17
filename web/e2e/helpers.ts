@@ -94,3 +94,26 @@ export async function advanceChainTime(seconds: number): Promise<void> {
   await call("evm_increaseTime", [seconds]);
   await call("evm_mine");
 }
+
+/**
+ * Fill a controlled input and confirm React actually took the value.
+ *
+ * Playwright can type into the DOM before hydration finishes, in which case
+ * React's state stays empty and any control gated on it stays disabled. This
+ * retries the fill until the dependent element is enabled.
+ */
+export async function fillWhenReady(
+  page: Page,
+  label: string | RegExp,
+  value: string,
+  enables: string | RegExp,
+): Promise<void> {
+  const { expect } = await import("@playwright/test");
+
+  await expect(async () => {
+    await page.getByLabel(label).fill(value);
+    await expect(page.getByRole("button", { name: enables })).toBeEnabled({
+      timeout: 2000,
+    });
+  }).toPass({ timeout: 60_000 });
+}

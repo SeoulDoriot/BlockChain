@@ -3,7 +3,8 @@ import {
   adminClient,
   advanceChainTime,
   chainDate,
-  isoDate,
+  fillWhenReady,
+
   requireEnv,
   signIn,
   uniqueRecipient,
@@ -113,7 +114,12 @@ test("revoking shows Revoked immediately, with no stale cache", async ({
   await signIn(page);
   await page.goto(`/dashboard/certificates/${certificateId}`);
 
-  await page.getByLabel("Revoke").fill("Issued in error during e2e test");
+  await fillWhenReady(
+    page,
+    "Revoke",
+    "Issued in error during e2e test",
+    /revoke certificate/i,
+  );
   await page.getByRole("button", { name: /revoke certificate/i }).click();
 
   await expect(page.getByRole("status")).toContainText("Revoked", {
@@ -160,7 +166,7 @@ test("a certificate past its expiry reads Expired, and renewing issues a valid o
 
   // Renew → a brand new certificate that is valid.
   await page.goto(`/dashboard/certificates/${shortLivedId}`);
-  await page.getByLabel("Renew").fill(await chainDate(365));
+  await fillWhenReady(page, "Renew", await chainDate(365), /^renew$/i);
   await page.getByRole("button", { name: /^renew$/i }).click();
 
   await page.waitForURL(

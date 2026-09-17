@@ -53,13 +53,18 @@ const PRESENTATION: Record<
 export function StatusSeal({
   status,
   tampered = false,
+  labels,
 }: {
   status: DisplayStatus;
   tampered?: boolean;
+  /** Optional translations; falls back to the English presentation. */
+  labels?: Record<DisplayStatus, { label: string; blurb: string }>;
 }) {
-  const presentation = tampered
-    ? PRESENTATION.tampered
-    : PRESENTATION[status];
+  const key: DisplayStatus = tampered ? "tampered" : status;
+  const presentation = {
+    ...PRESENTATION[key],
+    ...(labels ? labels[key] : {}),
+  };
 
   return (
     <div
