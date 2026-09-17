@@ -10,7 +10,13 @@
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "local:up": "supabase start && supabase db reset",
+    "local:down": "supabase stop",
+    "local:chain": "cd ../contracts && npx hardhat node",
+    "local:deploy": "cd ../contracts && npx hardhat ignition deploy ignition/modules/CertificateRegistry.ts --network localhost && npm run export-abi",
+    "local:seed": "tsx --env-file=.env.local scripts/create-admin.ts && npm run seed",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
