@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 // next/font self-hosts the font files at build time: no render-blocking request
@@ -35,7 +34,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-dvh bg-background font-sans antialiased`}
       >
         {children}
-        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

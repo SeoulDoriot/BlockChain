@@ -50,6 +50,33 @@ export function uniqueRecipient() {
  * the database, which would change the canonical payload and correctly be
  * reported as tampering instead.
  */
+async function rpcCall(method: string, params: unknown[] = []) {
+  const rpc = process.env.RPC_URL ?? "http://127.0.0.1:8545";
+  const response = await fetch(rpc, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
+  const body = await response.json();
+  if (body.error) throw new Error(`${method}: ${body.error.message}`);
+  return body.result;
+}
+
+/**
+ * A YYYY-MM-DD date relative to the CHAIN's clock, not the wall clock.
+ *
+ * Earlier tests move the chain forward to prove expiry, and a local node keeps
+ * that offset. Deriving dates from the chain keeps each test re-runnable
+ * regardless of how much time travel has already happened.
+ */
+export async function chainDate(offsetDays: number): Promise<string> {
+  const block = await rpcCall("eth_getBlockByNumber", ["latest", false]);
+  const seconds = Number.parseInt(block.timestamp, 16);
+  const date = new Date(seconds * 1000);
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
 export async function advanceChainTime(seconds: number): Promise<void> {
   const rpc = process.env.RPC_URL ?? "http://127.0.0.1:8545";
 

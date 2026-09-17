@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireStaff, AuthError } from "@/lib/auth";
 import { signOut } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 
 /**
  * Every dashboard route reads the session cookie to authenticate, so none of
@@ -67,6 +68,10 @@ export default async function DashboardLayout({
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+
+      {/* Toasts are only raised by dashboard actions, so sonner is mounted
+          here rather than in the root layout — public pages ship none of it. */}
+      <Toaster richColors position="top-center" />
     </div>
   );
 }

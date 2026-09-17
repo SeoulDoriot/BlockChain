@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   adminClient,
   advanceChainTime,
+  chainDate,
   isoDate,
   requireEnv,
   signIn,
@@ -31,8 +32,8 @@ test("issue a certificate and see it verify as Valid", async ({ page }) => {
 
   await page.getByLabel("Recipient name").fill(recipient.name);
   await page.getByLabel("Recipient email").fill(recipient.email);
-  await page.getByLabel("Issue date").fill(isoDate(0));
-  await page.getByLabel("Expiry date").fill(isoDate(365));
+  await page.getByLabel("Issue date").fill(await chainDate(0));
+  await page.getByLabel("Expiry date").fill(await chainDate(365));
 
   await page.getByRole("button", { name: /issue certificate/i }).click();
 
@@ -133,8 +134,10 @@ test("a certificate past its expiry reads Expired, and renewing issues a valid o
   await page.goto("/dashboard/certificates/new");
   await page.getByLabel("Recipient name").fill(recipient.name);
   await page.getByLabel("Recipient email").fill(recipient.email);
-  await page.getByLabel("Issue date").fill(isoDate(0));
-  await page.getByLabel("Expiry date").fill(isoDate(2));
+  // Dates come from the chain clock: earlier tests move it forward, and an
+  // expiry in the chain's past would be rejected by the contract.
+  await page.getByLabel("Issue date").fill(await chainDate(0));
+  await page.getByLabel("Expiry date").fill(await chainDate(2));
   await page.getByRole("button", { name: /issue certificate/i }).click();
 
   await page.waitForURL(/\/dashboard\/certificates\/[0-9a-f-]{36}/, {
@@ -157,7 +160,7 @@ test("a certificate past its expiry reads Expired, and renewing issues a valid o
 
   // Renew → a brand new certificate that is valid.
   await page.goto(`/dashboard/certificates/${shortLivedId}`);
-  await page.getByLabel("Renew").fill(isoDate(365));
+  await page.getByLabel("Renew").fill(await chainDate(365));
   await page.getByRole("button", { name: /^renew$/i }).click();
 
   await page.waitForURL(
