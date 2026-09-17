@@ -41,3 +41,29 @@ export function uniqueRecipient() {
     email: `e2e+${stamp}@example.com`,
   };
 }
+
+/**
+ * Advance the local Hardhat chain's clock.
+ *
+ * Expiry is derived from `block.timestamp` inside the contract, so the honest
+ * way to test it is to move the chain forward — not to edit `expires_on` in
+ * the database, which would change the canonical payload and correctly be
+ * reported as tampering instead.
+ */
+export async function advanceChainTime(seconds: number): Promise<void> {
+  const rpc = process.env.RPC_URL ?? "http://127.0.0.1:8545";
+
+  async function call(method: string, params: unknown[] = []) {
+    const response = await fetch(rpc, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    });
+    const body = await response.json();
+    if (body.error) throw new Error(`${method}: ${body.error.message}`);
+    return body.result;
+  }
+
+  await call("evm_increaseTime", [seconds]);
+  await call("evm_mine");
+}

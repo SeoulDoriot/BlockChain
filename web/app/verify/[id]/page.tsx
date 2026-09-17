@@ -61,6 +61,14 @@ async function VerificationResult({
     <>
       <StatusSeal status={result.status} />
 
+      {result.tampered ? (
+        <p className="mt-4 rounded-lg border border-red-600/30 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-400/25 dark:bg-red-950/40 dark:text-red-100">
+          The details stored for this certificate no longer match the
+          fingerprint recorded on the blockchain. It has been altered since it
+          was issued.
+        </p>
+      ) : null}
+
       <section className="mt-8" aria-labelledby="certificate-details">
         <h2 id="certificate-details" className="text-sm font-medium">
           Certificate
@@ -89,8 +97,17 @@ async function VerificationResult({
           Blockchain record
         </h2>
         <dl className="mt-2">
-          <Field label="Certificate hash" mono>
+          <Field label="Anchored hash" mono>
             {cert.cert_hash ?? "Not anchored"}
+          </Field>
+          <Field label="Recomputed hash" mono>
+            {result.computedHash ? (
+              <span className={result.tampered ? "text-destructive" : undefined}>
+                {result.computedHash} {result.tampered ? "✗ mismatch" : "✓ match"}
+              </span>
+            ) : (
+              "—"
+            )}
           </Field>
           <Field label="Transaction" mono>
             {cert.tx_hash ? (

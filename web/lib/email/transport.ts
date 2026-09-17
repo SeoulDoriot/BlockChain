@@ -16,14 +16,23 @@ const globalForMail = globalThis as unknown as {
 
 export function getTransport(): Transporter {
   if (!globalForMail.__mailTransport) {
+    // A local mail catcher (Mailpit, used by `supabase start`) accepts mail
+    // without authentication and rejects the AUTH command outright, so skip
+    // credentials there.
+    const isLocalSmtp =
+      serverEnv.SMTP_HOST === "127.0.0.1" || serverEnv.SMTP_HOST === "localhost";
+
     globalForMail.__mailTransport = nodemailer.createTransport({
       host: serverEnv.SMTP_HOST,
       port: serverEnv.SMTP_PORT,
       secure: serverEnv.SMTP_PORT === 465,
-      auth: {
-        user: serverEnv.SMTP_USER,
-        pass: serverEnv.SMTP_PASSWORD,
-      },
+      ignoreTLS: isLocalSmtp,
+      auth: isLocalSmtp
+        ? undefined
+        : {
+            user: serverEnv.SMTP_USER,
+            pass: serverEnv.SMTP_PASSWORD,
+          },
       pool: true,
       maxConnections: 3,
     });

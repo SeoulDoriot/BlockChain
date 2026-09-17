@@ -17,9 +17,9 @@ const nextConfig: NextConfig = {
     // Verification results: short-lived, and revalidated by tag the instant a
     // certificate is revoked or renewed so a stale "Valid" is never shown.
     verification: {
-      stale: 30,
-      revalidate: 60,
-      expire: 300,
+      stale: 5,
+      revalidate: 15,
+      expire: 60,
     },
     // Org and course data change roughly never.
     reference: {

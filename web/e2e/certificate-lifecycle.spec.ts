@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import {
   adminClient,
+  advanceChainTime,
   isoDate,
   requireEnv,
   signIn,
@@ -57,7 +58,16 @@ test("the blockchain transaction is shown and links to the explorer", async ({
   await page.goto(`/verify/${certificateId}`);
   const txLink = page.getByRole("link", { name: /^0x[0-9a-f]{64}$/i }).first();
   await expect(txLink).toBeVisible();
-  await expect(txLink).toHaveAttribute("href", /polygonscan\.com\/tx\/0x/);
+
+  // A local Hardhat chain has no block explorer, so the app emits a
+  // `local:` sentinel instead of a URL. On Amoy it must be a real link.
+  const isLocal = process.env.NEXT_PUBLIC_CHAIN === "local";
+  await expect(txLink).toHaveAttribute(
+    "href",
+    isLocal ? /^local:tx:0x[0-9a-f]{64}$/i : /polygonscan\.com\/tx\/0x/,
+  );
+
+  await expect(page.getByText(/Polygon Amoy|31337|80002/)).toBeVisible();
 });
 
 test("tampering with the database row is detected", async ({ page }) => {
@@ -70,20 +80,16 @@ test("tampering with the database row is detected", async ({ page }) => {
     .eq("id", certificateId);
   expect(error).toBeNull();
 
-  await page.goto(`/verify/${certificateId}`);
+  // The verification result is cached briefly, so poll until the cache turns
+  // over rather than asserting on the first render.
+  await expect(async () => {
+    await page.goto(`/verify/${certificateId}?t=${Date.now()}`);
+    await expect(page.getByRole("status")).toContainText("Tampered");
+  }).toPass({ timeout: 90_000 });
 
-  // The stored hash no longer matches the row's contents. The recomputed hash
-  // differs, so the certificate must not read as Valid for the new name.
-  const body = await page.textContent("body");
-  expect(body).toContain("Someone Else Entirely");
-
-  // The chain still holds the ORIGINAL hash, so a recomputation mismatches.
-  const { data } = await supabase
-    .from("certificates")
-    .select("cert_hash")
-    .eq("id", certificateId)
-    .single();
-  expect(data?.cert_hash).toBeTruthy();
+  // The altered name is shown, and the recomputed hash is flagged as a mismatch.
+  await expect(page.getByText("Someone Else Entirely")).toBeVisible();
+  await expect(page.getByText(/✗ mismatch/)).toBeVisible();
 });
 
 test("restoring the row makes it verify as Valid again", async ({ page }) => {
@@ -94,8 +100,10 @@ test("restoring the row makes it verify as Valid again", async ({ page }) => {
     .eq("id", certificateId);
   expect(error).toBeNull();
 
-  await page.goto(`/verify/${certificateId}`);
-  await expect(page.getByRole("status")).toContainText("Valid");
+  await expect(async () => {
+    await page.goto(`/verify/${certificateId}?t=${Date.now()}`);
+    await expect(page.getByRole("status")).toContainText("Valid");
+  }).toPass({ timeout: 90_000 });
 });
 
 test("revoking shows Revoked immediately, with no stale cache", async ({
@@ -125,8 +133,8 @@ test("a certificate past its expiry reads Expired, and renewing issues a valid o
   await page.goto("/dashboard/certificates/new");
   await page.getByLabel("Recipient name").fill(recipient.name);
   await page.getByLabel("Recipient email").fill(recipient.email);
-  await page.getByLabel("Issue date").fill(isoDate(-10));
-  await page.getByLabel("Expiry date").fill(isoDate(1));
+  await page.getByLabel("Issue date").fill(isoDate(0));
+  await page.getByLabel("Expiry date").fill(isoDate(2));
   await page.getByRole("button", { name: /issue certificate/i }).click();
 
   await page.waitForURL(/\/dashboard\/certificates\/[0-9a-f-]{36}/, {
@@ -134,19 +142,18 @@ test("a certificate past its expiry reads Expired, and renewing issues a valid o
   });
   const shortLivedId = page.url().split("/").pop()!;
 
-  // Move the expiry into the past directly. The contract compares against the
-  // chain clock, so the row edit alone proves the derived-status path; the
-  // chain path is covered by the contract's own time-travel tests.
-  const supabase = adminClient();
-  await supabase
-    .from("certificates")
-    .update({ expires_on: isoDate(-1) })
-    .eq("id", shortLivedId);
-
   await page.goto(`/verify/${shortLivedId}`);
-  await expect(page.getByRole("status")).toContainText("Expired", {
-    timeout: 60_000,
-  });
+  await expect(page.getByRole("status")).toContainText("Valid");
+
+  // Move the chain clock past the expiry. The contract compares expiresAt to
+  // block.timestamp on every read, so no job runs and nothing is written —
+  // the certificate simply becomes Expired on its own.
+  await advanceChainTime(4 * 24 * 60 * 60);
+
+  await expect(async () => {
+    await page.goto(`/verify/${shortLivedId}?t=${Date.now()}`);
+    await expect(page.getByRole("status")).toContainText("Expired");
+  }).toPass({ timeout: 90_000 });
 
   // Renew → a brand new certificate that is valid.
   await page.goto(`/dashboard/certificates/${shortLivedId}`);
@@ -154,8 +161,9 @@ test("a certificate past its expiry reads Expired, and renewing issues a valid o
   await page.getByRole("button", { name: /^renew$/i }).click();
 
   await page.waitForURL(
-    (url) => /\/dashboard\/certificates\/[0-9a-f-]{36}/.test(url.pathname)
-      && !url.pathname.endsWith(shortLivedId),
+    (url) =>
+      /\/dashboard\/certificates\/[0-9a-f-]{36}/.test(url.pathname) &&
+      !url.pathname.endsWith(shortLivedId),
     { timeout: 120_000 },
   );
 

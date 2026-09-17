@@ -5,6 +5,14 @@ const PRESENTATION: Record<
   DisplayStatus,
   { label: string; blurb: string; className: string; icon: string }
 > = {
+  tampered: {
+    label: "Tampered",
+    blurb:
+      "The certificate details do not match what was recorded on the blockchain.",
+    className:
+      "border-red-600/30 bg-red-50 text-red-900 dark:border-red-400/25 dark:bg-red-950/40 dark:text-red-100",
+    icon: "M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z",
+  },
   active: {
     label: "Valid",
     blurb: "This certificate is genuine and currently valid.",
@@ -50,14 +58,7 @@ export function StatusSeal({
   tampered?: boolean;
 }) {
   const presentation = tampered
-    ? {
-        label: "Tampered",
-        blurb:
-          "The certificate details do not match what was recorded on the blockchain.",
-        className:
-          "border-red-600/30 bg-red-50 text-red-900 dark:border-red-400/25 dark:bg-red-950/40 dark:text-red-100",
-        icon: "M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z",
-      }
+    ? PRESENTATION.tampered
     : PRESENTATION[status];
 
   return (

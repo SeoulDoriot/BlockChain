@@ -20,6 +20,7 @@ export type DisplayStatus =
   | "active"
   | "expired"
   | "revoked"
+  | "tampered"
   | "not_found"
   | "draft";
 
@@ -72,6 +73,7 @@ export function deriveStatus({
 }
 
 export const STATUS_LABELS: Record<DisplayStatus, string> = {
+  tampered: "Tampered",
   active: "Valid",
   expired: "Expired",
   revoked: "Revoked",
