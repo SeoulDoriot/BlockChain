@@ -72,11 +72,50 @@ export function deriveStatus({
   return isExpired(expiresOn, now) ? "expired" : "not_found";
 }
 
-export const STATUS_LABELS: Record<DisplayStatus, string> = {
+/**
+ * What a verification page shows. Two cases a bare DisplayStatus cannot tell
+ * apart, and which must never both read "Not found":
+ *   - unrecorded:  the certificate is in our records but its fingerprint is not
+ *                  on the chain, so it cannot be confirmed as genuine.
+ *   - unavailable: the chain could not be reached at all.
+ */
+export type ResultKey = DisplayStatus | "unrecorded" | "unavailable";
+
+export function resultKey(result: {
+  found: boolean;
+  status: DisplayStatus;
+  chainUnavailable: boolean;
+}): ResultKey {
+  if (!result.found) return "not_found";
+  if (result.chainUnavailable) return "unavailable";
+  if (result.status === "not_found") return "unrecorded";
+  return result.status;
+}
+
+export const STATUS_LABELS: Record<ResultKey, string> = {
   tampered: "Tampered",
   active: "Valid",
   expired: "Expired",
   revoked: "Revoked",
   not_found: "Not found",
   draft: "Draft",
+  unrecorded: "Not on chain",
+  unavailable: "Can't verify",
 };
+
+/**
+ * Status for list views, from the database row alone.
+ *
+ * Lists must not make one RPC call per row, so this trusts the cached row. The
+ * detail and public verify pages still read the chain, which stays
+ * authoritative (see `deriveStatus`).
+ */
+export function cachedStatus(
+  rowStatus: "draft" | "issued" | "revoked",
+  expiresOn: string | null,
+  now: Date = new Date(),
+): DisplayStatus {
+  if (rowStatus === "draft") return "draft";
+  if (rowStatus === "revoked") return "revoked";
+  return isExpired(expiresOn, now) ? "expired" : "active";
+}

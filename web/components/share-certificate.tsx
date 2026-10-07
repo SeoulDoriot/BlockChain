@@ -62,17 +62,17 @@ export function ShareCertificate({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button asChild variant="outline" size="sm">
+      <Button asChild variant="outline">
         <a href={addToProfile} target="_blank" rel="noopener noreferrer">
           {labels.addToLinkedIn}
         </a>
       </Button>
-      <Button asChild variant="outline" size="sm">
+      <Button asChild variant="outline">
         <a href={shareUrl} target="_blank" rel="noopener noreferrer">
           {labels.share}
         </a>
       </Button>
-      <Button variant="ghost" size="sm" onClick={copy}>
+      <Button variant="ghost" onClick={copy}>
         <span aria-live="polite">{copied ? labels.copied : labels.copy}</span>
       </Button>
     </div>

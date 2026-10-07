@@ -1,36 +1,35 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireIssuer } from "@/lib/auth";
 import { listCourses } from "@/lib/data/reference";
 import { IssueCertificateForm } from "@/components/issue-certificate-form";
+import { PageHeader } from "@/components/page-header";
+import { getOrgSignatory, signatureDataUrl } from "@/lib/cert/signatory";
 
-export const metadata: Metadata = { title: "Issue a certificate" };
+/** Authenticated on every request, so this route is expected to block. */
+export const instant = false;
+
+export const metadata: Metadata = { title: "Issue Certificate" };
 
 export default async function NewCertificatePage() {
-  const { org } = await requireIssuer();
+  const { org, staff } = await requireIssuer();
   const courses = await listCourses(org.id);
+  const signatory = await getOrgSignatory(org.id);
+  const signatureSrc = await signatureDataUrl(signatory.path);
 
   return (
-    <>
-      <Link
-        href="/dashboard/certificates"
-        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-      >
-        ← Certificates
-      </Link>
-
-      <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-        Issue a certificate
-      </h1>
-      <p className="mt-2 max-w-prose text-sm text-muted-foreground text-pretty">
-        The certificate is anchored on the blockchain before the PDF is
-        generated, so this takes a few seconds. The recipient is emailed
-        automatically.
-      </p>
-
-      <div className="mt-8 max-w-xl">
-        <IssueCertificateForm courses={courses} />
-      </div>
-    </>
+    <div className="space-y-8">
+      <PageHeader
+        title="Issue Certificate"
+        description="Fill in the details and check the preview. The recipient receives the PDF by email as soon as it is issued."
+      />
+      <IssueCertificateForm
+        courses={courses}
+        orgName={org.name}
+        signatoryName={signatory.name}
+        signatoryTitle={signatory.title}
+        signatureSrc={signatureSrc}
+        isAdmin={staff.role === "admin"}
+      />
+    </div>
   );
 }

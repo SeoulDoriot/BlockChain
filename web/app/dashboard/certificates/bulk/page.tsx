@@ -2,35 +2,37 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireIssuer } from "@/lib/auth";
 import { listCourses } from "@/lib/data/reference";
+import { ChevronLeft } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { BulkIssue } from "@/components/bulk-issue";
 
 export const metadata: Metadata = { title: "Bulk issue" };
+
+/** Authenticated on every request, so this route is expected to block. */
+export const instant = false;
 
 export default async function BulkIssuePage() {
   const { org } = await requireIssuer();
   const courses = await listCourses(org.id);
 
   return (
-    <>
-      <Link
-        href="/dashboard/certificates"
-        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-      >
-        ← Certificates
-      </Link>
-
-      <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-        Bulk issue from a CSV
-      </h1>
-      <p className="mt-2 max-w-prose text-sm text-muted-foreground text-pretty">
-        Issue a whole cohort in one go. Each certificate is anchored on the
-        blockchain in its own transaction, one after another, so a failure part
-        way through leaves the earlier ones intact and safe to keep.
-      </p>
-
-      <div className="mt-8">
+    <div className="space-y-8">
+      <div>
+        <Link
+          href="/dashboard/certificates"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" strokeWidth={1.75} /> Certificates
+        </Link>
+        <PageHeader
+          className="mt-3"
+          title="Bulk issue"
+          description="Issue a whole cohort from a CSV. Each certificate is recorded in its own transaction, so a failure part way through leaves the earlier ones intact."
+        />
+      </div>
+      <div className="rounded-2xl border bg-card p-5 sm:p-6">
         <BulkIssue courses={courses} />
       </div>
-    </>
+    </div>
   );
 }

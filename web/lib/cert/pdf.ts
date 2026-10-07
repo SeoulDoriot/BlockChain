@@ -8,6 +8,8 @@ import {
   type PDFPage,
 } from "pdf-lib";
 import { qrPngBytes, verifyUrl } from "@/lib/cert/qr";
+import { renderKitCertificatePdf } from "@/lib/cert/kit-pdf";
+import type { CertificateTemplate } from "@/lib/cert/template-layout";
 
 /**
  * Renders the certificate PDF.
@@ -21,6 +23,9 @@ import { qrPngBytes, verifyUrl } from "@/lib/cert/qr";
  */
 
 export interface CertificatePdfInput {
+  templateId?: CertificateTemplate;
+  certificateTitle?: string;
+  description?: string;
   certificateId: string;
   orgName: string;
   recipientName: string;
@@ -30,14 +35,20 @@ export interface CertificatePdfInput {
   expiresOn: string | null;
   certHash: string;
   txHash: string | null;
+  /** Who signs. All optional: an unconfigured org keeps a blank signature line. */
+  signatory?: {
+    name: string | null;
+    title: string | null;
+    image: { bytes: Uint8Array; type: "png" | "jpg" } | null;
+  };
 }
 
 const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 
-const INK = rgb(0.09, 0.09, 0.11);
-const MUTED = rgb(0.42, 0.42, 0.47);
-const ACCENT = rgb(0.13, 0.32, 0.55);
-const RULE = rgb(0.83, 0.83, 0.86);
+// Matches the on-screen template: near-black ink, quiet grey, hairline rules.
+const INK = rgb(0.114, 0.114, 0.122); // #1d1d1f
+const MUTED = rgb(0.431, 0.431, 0.451); // #6e6e73
+const RULE = rgb(0.91, 0.91, 0.91); // #e8e8e8
 
 function drawCentered(
   page: PDFPage,
@@ -66,6 +77,7 @@ function splitHash(hash: string): [string, string] {
 export async function renderCertificatePdf(
   input: CertificatePdfInput,
 ): Promise<Uint8Array> {
+  if (input.templateId !== "classic") return renderKitCertificatePdf(input);
   const pdf = await PDFDocument.create();
 
   pdf.setTitle(`${input.courseTitle} — ${input.recipientName}`);
@@ -76,70 +88,71 @@ export async function renderCertificatePdf(
   const page = pdf.addPage(A4_LANDSCAPE);
   const [pageWidth, pageHeight] = A4_LANDSCAPE;
 
-  const serif = await pdf.embedFont(StandardFonts.TimesRoman);
-  const serifBold = await pdf.embedFont(StandardFonts.TimesRomanBold);
-  const serifItalic = await pdf.embedFont(StandardFonts.TimesRomanItalic);
+  const serif = await pdf.embedFont(StandardFonts.Helvetica);
+  const serifBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const mono = await pdf.embedFont(StandardFonts.Courier);
 
   // --- border -------------------------------------------------------------
   page.drawRectangle({
-    x: 24,
-    y: 24,
-    width: pageWidth - 48,
-    height: pageHeight - 48,
-    borderColor: ACCENT,
-    borderWidth: 2,
-  });
-  page.drawRectangle({
-    x: 32,
-    y: 32,
-    width: pageWidth - 64,
-    height: pageHeight - 64,
+    x: 28,
+    y: 28,
+    width: pageWidth - 56,
+    height: pageHeight - 56,
     borderColor: RULE,
-    borderWidth: 0.75,
+    borderWidth: 1,
   });
 
   // --- header -------------------------------------------------------------
-  drawCentered(page, input.orgName.toUpperCase(), serifBold, 16, pageHeight - 90, ACCENT);
-  drawCentered(page, "CERTIFICATE OF COMPLETION", serif, 11, pageHeight - 112, MUTED);
-
-  page.drawLine({
-    start: { x: pageWidth / 2 - 60, y: pageHeight - 128 },
-    end: { x: pageWidth / 2 + 60, y: pageHeight - 128 },
-    thickness: 1,
-    color: ACCENT,
-  });
+  drawCentered(page, input.orgName.toUpperCase().split("").join(" "), serifBold, 9, pageHeight - 84, MUTED);
 
   // --- recipient ----------------------------------------------------------
-  drawCentered(page, "This is to certify that", serifItalic, 13, pageHeight - 172, MUTED);
-  drawCentered(page, input.recipientName, serifBold, 34, pageHeight - 220);
-  drawCentered(
-    page,
-    "has successfully completed the course",
-    serifItalic,
-    13,
-    pageHeight - 252,
-    MUTED,
-  );
-  drawCentered(
-    page,
-    `${input.courseCode} — ${input.courseTitle}`,
-    serifBold,
-    18,
-    pageHeight - 286,
-  );
+  drawCentered(page, input.certificateTitle || "Certificate of Completion", serif, 12, pageHeight - 160, MUTED);
+  drawCentered(page, input.recipientName, serifBold, 38, pageHeight - 214);
+  drawCentered(page, input.description || "has successfully completed", serif, 12, pageHeight - 248, MUTED);
+  drawCentered(page, input.courseTitle, serifBold, 18, pageHeight - 280);
 
   // --- dates --------------------------------------------------------------
   const dateLine = input.expiresOn
     ? `Issued ${input.issuedOn}   ·   Valid until ${input.expiresOn}`
     : `Issued ${input.issuedOn}   ·   No expiry`;
-  drawCentered(page, dateLine, serif, 11, pageHeight - 318, MUTED);
+  drawCentered(page, dateLine, serif, 10, pageHeight - 310, MUTED);
+
+  // --- signature ----------------------------------------------------------
+  const signatory = input.signatory;
+  if (signatory?.image) {
+    const image =
+      signatory.image.type === "png"
+        ? await pdf.embedPng(signatory.image.bytes)
+        : await pdf.embedJpg(signatory.image.bytes);
+    // Fit inside a 150×44 box above the line, preserving the aspect ratio.
+    const scale = Math.min(150 / image.width, 44 / image.height, 1);
+    page.drawImage(image, {
+      x: 64,
+      y: 248,
+      width: image.width * scale,
+      height: image.height * scale,
+    });
+  }
+  page.drawLine({
+    start: { x: 64, y: 244 },
+    end: { x: 244, y: 244 },
+    thickness: 0.75,
+    color: INK,
+  });
+  if (signatory?.name) {
+    page.drawText(signatory.name, { x: 64, y: 230, size: 10, font: serifBold, color: INK });
+    if (signatory.title) {
+      page.drawText(signatory.title, { x: 64, y: 217, size: 8.5, font: serif, color: MUTED });
+    }
+  } else {
+    page.drawText("Authorised signature", { x: 64, y: 230, size: 8, font: serif, color: MUTED });
+  }
 
   // --- QR -----------------------------------------------------------------
   const qrImage = await pdf.embedPng(await qrPngBytes(input.certificateId));
   const qrSize = 116;
   const qrX = pageWidth - 64 - qrSize;
-  const qrY = 74;
+  const qrY = 80;
 
   page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
   page.drawText("Scan to verify", {
@@ -152,14 +165,14 @@ export async function renderCertificatePdf(
 
   // --- verification block -------------------------------------------------
   const blockX = 64;
-  let blockY = 176;
+  let blockY = 196;
 
-  page.drawText("VERIFICATION", {
+  page.drawText("Verification", {
     x: blockX,
     y: blockY,
     size: 9,
     font: serifBold,
-    color: ACCENT,
+    color: INK,
   });
   blockY -= 16;
 
@@ -210,7 +223,7 @@ export async function renderCertificatePdf(
     color: RULE,
   });
   page.drawText(
-    "This certificate is anchored on the Polygon blockchain. Any alteration to this document invalidates it.",
+    `Certificate ID ${input.certificateId}. Any alteration to this document invalidates it.`,
     { x: 64, y: 46, size: 7.5, font: serif, color: MUTED },
   );
 

@@ -6,10 +6,12 @@ import type { Hex } from "viem";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashCertificate } from "@/lib/cert/hash";
 import { renderCertificatePdf } from "@/lib/cert/pdf";
-import { pdfPath, uploadPdf } from "@/lib/cert/storage";
+import { downloadSignature, pdfPath, uploadPdf } from "@/lib/cert/storage";
+import { getOrgSignatory } from "@/lib/cert/signatory";
 import { issueOnChain, revokeOnChain } from "@/lib/chain/registry";
 import { recordAudit } from "@/lib/audit";
 import { env } from "@/lib/env";
+import type { CertificateTemplate } from "@/lib/cert/template-layout";
 
 /**
  * The issuing pipeline.
@@ -26,6 +28,9 @@ import { env } from "@/lib/env";
  */
 
 export interface IssueInput {
+  templateId?: CertificateTemplate;
+  certificateTitle?: string;
+  description?: string;
   certificateId: string;
   orgId: string;
   orgSlug: string;
@@ -65,8 +70,15 @@ export async function issueCertificate(
   // 2. anchor on-chain and wait for the receipt
   const receipt = await issueOnChain(certHash, input.expiresOn);
 
-  // 3. render the PDF (now that the tx hash exists to print on it)
+  // 3. render the PDF (now that the tx hash exists to print on it). The
+  //    signatory is read now and copied onto the row below, so changing it
+  //    later never alters a certificate that already exists.
+  const signatory = await getOrgSignatory(input.orgId);
+  const signatureImage = signatory.path ? await downloadSignature(signatory.path) : null;
   const pdf = await renderCertificatePdf({
+    templateId: input.templateId,
+    certificateTitle: input.certificateTitle,
+    description: input.description,
     certificateId: input.certificateId,
     orgName: input.orgName,
     recipientName: input.recipientName,
@@ -76,6 +88,7 @@ export async function issueCertificate(
     expiresOn: input.expiresOn,
     certHash,
     txHash: receipt.txHash,
+    signatory: { name: signatory.name, title: signatory.title, image: signatureImage },
   });
 
   // 4. store it privately, and fingerprint the exact bytes we generated so
@@ -93,6 +106,9 @@ export async function issueCertificate(
       chain_id: env.NEXT_PUBLIC_CHAIN_ID,
       pdf_path: storagePath,
       pdf_sha256: pdfSha256,
+      signatory_name: signatory.name,
+      signatory_title: signatory.title,
+      signature_path: signatureImage ? signatory.path : null,
       status: "issued",
     })
     .eq("id", input.certificateId);

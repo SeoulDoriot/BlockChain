@@ -49,6 +49,9 @@ export async function POST(request: Request) {
   const { data: draft, error: draftError } = await supabase
     .from("certificates")
     .insert({
+      template_id: input.templateId,
+      certificate_title: input.certificateTitle,
+      description: input.description,
       org_id: context.org.id,
       course_id: course.id,
       recipient_name: input.recipientName,
@@ -68,8 +71,23 @@ export async function POST(request: Request) {
     );
   }
 
+  if (input.draft) {
+    await recordAudit({
+      orgId: context.org.id,
+      actor: context.staff.id,
+      action: "certificate.draft_saved",
+      entity: "certificate",
+      entityId: draft.id,
+      meta: {},
+    });
+    return NextResponse.json({ id: draft.id, draft: true });
+  }
+
   try {
     const result = await issueCertificate({
+      templateId: input.templateId,
+      certificateTitle: input.certificateTitle,
+      description: input.description,
       certificateId: draft.id,
       orgId: context.org.id,
       orgSlug: context.org.slug,

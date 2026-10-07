@@ -2,13 +2,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardLoading() {
   return (
-    <div className="space-y-8">
-      <Skeleton className="h-9 w-48" />
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <Skeleton className="h-28 w-full rounded-xl" />
+    <div className="space-y-8" aria-busy="true">
+      <Skeleton className="h-10 w-72 rounded-xl" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+        ))}
       </div>
+      <Skeleton className="h-72 w-full rounded-2xl" />
     </div>
   );
 }

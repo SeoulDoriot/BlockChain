@@ -1,13 +1,6 @@
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -22,6 +15,9 @@ interface AuditRow {
   created_at: string;
   actor: { full_name: string | null; email: string } | null;
 }
+
+/** Authenticated on every request, so this route is expected to block. */
+export const instant = false;
 
 export default async function AuditPage({
   searchParams,
@@ -49,62 +45,49 @@ export default async function AuditPage({
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
-      <p className="mt-2 max-w-prose text-sm text-muted-foreground text-pretty">
-        Every issue, revocation, renewal and email. Written with the service
-        role and read-only here — no client can insert or edit these rows.
-      </p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Audit log"
+        description="Every issue, revocation, renewal and email. Read-only: nothing here can be edited."
+      />
 
-      <div className="mt-6 overflow-x-auto">
-        <Table>
-          <caption className="sr-only">Audit log entries, newest first</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>When</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Who</TableHead>
-              <TableHead>Entity</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
-                  Nothing recorded yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="whitespace-nowrap tabular-nums text-xs">
-                    {row.created_at.replace("T", " ").slice(0, 19)}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{row.action}</TableCell>
-                  <TableCell className="text-xs">
-                    {row.actor?.full_name ?? row.actor?.email ?? "system"}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs break-all">
-                    {row.entity_id ? (
-                      <Link
-                        href={`/dashboard/certificates/${row.entity_id}`}
-                        className="underline-offset-4 hover:underline"
-                      >
-                        {row.entity_id.slice(0, 8)}…
-                      </Link>
-                    ) : (
-                      row.entity
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      <div className="overflow-hidden rounded-2xl border bg-card">
+        {rows.length === 0 ? (
+          <p className="px-6 py-14 text-center text-sm text-muted-foreground">
+            Nothing recorded yet.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {rows.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3.5 transition-colors duration-150 hover:bg-muted/50 sm:px-5"
+              >
+                <span className="w-full font-mono text-xs sm:text-[13px] sm:w-56 sm:flex-none">
+                  {row.action}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {row.actor?.full_name ?? row.actor?.email ?? "system"}
+                </span>
+                <span className="text-xs text-muted-foreground tabular-nums sm:ml-auto">
+                  {row.created_at.replace("T", " ").slice(0, 19)}
+                </span>
+                {row.entity_id ? (
+                  <Link
+                    href={`/dashboard/certificates/${row.entity_id}`}
+                    className="font-mono text-xs underline-offset-4 hover:underline"
+                  >
+                    {row.entity_id.slice(0, 8)}
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {pageCount > 1 ? (
-        <nav aria-label="Pagination" className="mt-6 flex items-center justify-between">
+        <nav aria-label="Pagination" className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
             Page {page} of {pageCount} · {total} entries
           </span>
@@ -122,6 +105,6 @@ export default async function AuditPage({
           </div>
         </nav>
       ) : null}
-    </>
+    </div>
   );
 }

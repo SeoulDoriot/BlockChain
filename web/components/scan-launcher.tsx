@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Camera, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -32,7 +33,11 @@ export function extractCertificateId(raw: string): string | null {
   return /^[0-9a-fA-F-]{16,64}$/.test(value) ? value : null;
 }
 
-export function ScanLauncher() {
+/**
+ * `resultBase` is where a successful scan goes: the public page by default, or
+ * the in-dashboard result when staff scan from inside the app.
+ */
+export function ScanLauncher({ resultBase = "/verify", featured = false }: { resultBase?: string; featured?: boolean }) {
   const router = useRouter();
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,14 +53,21 @@ export function ScanLauncher() {
               return;
             }
             setActive(false);
-            router.push(`/verify/${encodeURIComponent(id)}`);
+            router.push(`${resultBase}/${encodeURIComponent(id)}`);
           }}
           onError={(message) => setError(message)}
         />
       ) : (
-        <Button onClick={() => { setError(null); setActive(true); }}>
-          Start camera
-        </Button>
+        <div className={featured ? "rounded-2xl border border-dashed bg-muted/30 px-6 py-10 text-center sm:py-12" : ""}>
+          {featured ? <>
+            <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl border bg-card"><ScanLine className="size-8" strokeWidth={1.5} /></span>
+            <h2 className="text-lg font-medium">Ready to scan</h2>
+            <p className="mx-auto mt-2 mb-6 max-w-xs text-sm leading-relaxed text-muted-foreground">Place the certificate’s QR code inside the camera frame.</p>
+          </> : null}
+          <Button className={featured ? "h-12 w-full gap-2 rounded-xl text-base" : ""} onClick={() => { setError(null); setActive(true); }}>
+            {featured ? <Camera className="size-4" /> : null} Start camera
+          </Button>
+        </div>
       )}
 
       {active ? (
