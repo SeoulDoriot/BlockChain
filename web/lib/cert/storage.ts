@@ -49,3 +49,33 @@ export async function signedPdfUrl(
   }
   return data.signedUrl;
 }
+
+/** Signature images live in the same private bucket, under the org's folder. */
+export function signaturePath(orgId: string, ext: "png" | "jpg"): string {
+  return `${orgId}/signatures/${Date.now()}.${ext}`;
+}
+
+export async function uploadSignature(
+  path: string,
+  bytes: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, bytes, { contentType, upsert: false });
+  if (error) throw new Error(`Signature upload failed: ${error.message}`);
+}
+
+/** Returns null rather than throwing: a missing image must not block issuing. */
+export async function downloadSignature(
+  path: string,
+): Promise<{ bytes: Uint8Array; type: "png" | "jpg" } | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.storage.from(BUCKET).download(path);
+  if (error || !data) return null;
+  return {
+    bytes: new Uint8Array(await data.arrayBuffer()),
+    type: path.endsWith(".png") ? "png" : "jpg",
+  };
+}
