@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 export function requireEnv(name: string): string {
   const value = process.env[name];
@@ -103,7 +103,7 @@ export async function advanceChainTime(seconds: number): Promise<void> {
  * retries the fill until the dependent element is enabled.
  */
 export async function fillWhenReady(
-  page: Page,
+  page: Page | Locator,
   label: string | RegExp,
   value: string,
   enables: string | RegExp,
@@ -111,9 +111,61 @@ export async function fillWhenReady(
   const { expect } = await import("@playwright/test");
 
   await expect(async () => {
+    // Clear first: re-filling an identical value fires no change event, so a
+    // value typed before hydration would never reach React's state.
+    await page.getByLabel(label).fill("");
     await page.getByLabel(label).fill(value);
-    await expect(page.getByRole("button", { name: enables })).toBeEnabled({
+    await expect(page.getByRole("button", { name: enables }).last()).toBeEnabled({
       timeout: 2000,
     });
+  }).toPass({ timeout: 60_000 });
+}
+
+/**
+ * Fill the issue form and confirm in the modal.
+ *
+ * The inputs are controlled, so a fill that lands before hydration is lost.
+ * Retrying until the confirmation dialog opens proves React took the values.
+ */
+export async function issueViaForm(
+  page: Page,
+  recipient: { name: string; email: string },
+  issuedOn: string,
+  expiresOn: string,
+): Promise<void> {
+  const { expect } = await import("@playwright/test");
+
+  await expect(async () => {
+    await page.getByLabel("Recipient name").fill(recipient.name);
+    await page.getByLabel("Email address").fill(recipient.email);
+    await page.getByLabel("Issue date").fill(issuedOn);
+    await page.getByLabel("Expiration date").fill(expiresOn);
+    await page.getByRole("button", { name: "Issue Certificate" }).click();
+    await expect(page.getByRole("button", { name: "Confirm and issue" })).toBeVisible({
+      timeout: 2000,
+    });
+  }).toPass({ timeout: 60_000 });
+
+  await page.getByRole("button", { name: "Confirm and issue" }).click();
+}
+
+/**
+ * Choose a CSV in the bulk form. The change handler is attached on hydration,
+ * so a file chosen too early is silently ignored; retry until rows appear.
+ */
+export async function chooseCsv(
+  page: Page,
+  file: { name: string; content: string },
+  expectVisible: RegExp,
+): Promise<void> {
+  const { expect } = await import("@playwright/test");
+
+  await expect(async () => {
+    await page.getByLabel("CSV file").setInputFiles({
+      name: file.name,
+      mimeType: "text/csv",
+      buffer: Buffer.from(file.content, "utf8"),
+    });
+    await expect(page.getByText(expectVisible).first()).toBeVisible({ timeout: 2000 });
   }).toPass({ timeout: 60_000 });
 }

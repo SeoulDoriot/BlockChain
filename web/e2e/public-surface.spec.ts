@@ -23,17 +23,17 @@ test("the language toggle switches to Khmer and back, without JavaScript", async
 
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Certificate verification",
+    "Certificates you can trust",
   );
 
   await page.getByRole("button", { name: "ភាសាខ្មែរ" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "ការផ្ទៀងផ្ទាត់វិញ្ញាបនបត្រ",
+    "វិញ្ញាបនបត្រដែលអ្នកអាចទុកចិត្តបាន",
   );
 
   await page.getByRole("button", { name: "English" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Certificate verification",
+    "Certificates you can trust",
   );
 
   await context.close();

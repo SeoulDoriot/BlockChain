@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { chainDate, signIn, uniqueRecipient } from "./helpers";
+import { chainDate, chooseCsv, signIn, uniqueRecipient } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -18,11 +18,7 @@ test("bulk issues a CSV cohort and reports per-row results", async ({ page }) =>
   await signIn(page);
   await page.goto("/dashboard/certificates/bulk");
 
-  await page.getByLabel("CSV file").setInputFiles({
-    name: "cohort.csv",
-    mimeType: "text/csv",
-    buffer: Buffer.from(csv, "utf8"),
-  });
+  await chooseCsv(page, { name: "cohort.csv", content: csv }, /Issue 2 certificates/i);
 
   // Both rows parse, so the run button offers exactly two certificates.
   const runButton = page.getByRole("button", { name: /Issue 2 certificates/i });
@@ -39,7 +35,7 @@ test("bulk issues a CSV cohort and reports per-row results", async ({ page }) =>
   const first = await page.getByRole("link", { name: "Issued" }).first().getAttribute("href");
   const id = first!.split("/").pop()!;
   await page.goto(`/verify/${id}`);
-  await expect(page.getByRole("status")).toContainText("Valid");
+  await expect(page.getByRole("status")).toContainText(/verified/i);
   await expect(page.getByText(a.name)).toBeVisible();
 });
 
@@ -54,13 +50,8 @@ test("refuses a file with a bad row and names the line", async ({ page }) => {
     "CS101,No Email,,,",
   ].join("\n");
 
-  await page.getByLabel("CSV file").setInputFiles({
-    name: "bad.csv",
-    mimeType: "text/csv",
-    buffer: Buffer.from(csv, "utf8"),
-  });
+  await chooseCsv(page, { name: "bad.csv", content: csv }, /problems in the file/i);
 
-  await expect(page.getByText(/problems in the file/i)).toBeVisible();
   await expect(page.getByText(/Line 3: Unknown course "NOPE404"/)).toBeVisible();
   await expect(page.getByText(/Line 4: recipient_email is required/)).toBeVisible();
 
@@ -72,11 +63,9 @@ test("rejects a file missing a required column", async ({ page }) => {
   await signIn(page);
   await page.goto("/dashboard/certificates/bulk");
 
-  await page.getByLabel("CSV file").setInputFiles({
-    name: "headers.csv",
-    mimeType: "text/csv",
-    buffer: Buffer.from("course_code,recipient_name\nCS101,Sok", "utf8"),
-  });
-
-  await expect(page.getByText(/Missing column: recipient_email/)).toBeVisible();
+  await chooseCsv(
+    page,
+    { name: "headers.csv", content: "course_code,recipient_name\nCS101,Sok" },
+    /Missing column: recipient_email/,
+  );
 });
