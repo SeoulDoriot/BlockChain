@@ -4,7 +4,7 @@ import { cacheTag, cacheLife } from "next/cache";
 import type { Hex } from "viem";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrgById } from "@/lib/data/reference";
-import { getCertificate, type OnChainRecord } from "@/lib/chain/registry";
+import { ChainUnavailableError, getCertificate, type OnChainRecord } from "@/lib/chain/registry";
 import { deriveStatus, type DisplayStatus } from "@/lib/status";
 import { hashCertificate } from "@/lib/cert/hash";
 import type { PublicCertificate } from "@/lib/data/certificates";
@@ -15,6 +15,8 @@ export interface VerificationResult {
   certificate: PublicCertificate | null;
   orgName: string | null;
   chain: OnChainRecord | null;
+  /** The chain could not be read, so no verdict on its state is possible. */
+  chainUnavailable: boolean;
   /**
    * True when the hash recomputed from the stored row does not match the hash
    * anchored on-chain — i.e. the database row was edited after issuing.
@@ -77,15 +79,22 @@ export async function verifyCertificateById(
       certificate: null,
       orgName: null,
       chain: null,
+      chainUnavailable: false,
       tampered: false,
       computedHash: null,
     };
   }
 
+  let chainUnavailable = false;
   const [org, chain] = await Promise.all([
     getOrgById(row.org_id),
     row.cert_hash
-      ? getCertificate(row.cert_hash as Hex)
+      ? getCertificate(row.cert_hash as Hex).catch((error: unknown) => {
+          if (!(error instanceof ChainUnavailableError)) throw error;
+          console.error("[verify]", error.message);
+          chainUnavailable = true;
+          return null;
+        })
       : Promise.resolve(null),
   ]);
 
@@ -145,6 +154,7 @@ export async function verifyCertificateById(
     certificate: publicCertificate,
     orgName: org?.name ?? null,
     chain,
+    chainUnavailable,
     tampered,
     computedHash,
   };

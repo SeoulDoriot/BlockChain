@@ -26,6 +26,18 @@ export interface OnChainRecord {
  * reverts for an unknown hash, which is expected rather than exceptional — an
  * unissued certificate simply has no record.
  */
+/**
+ * The chain could not be read at all (node down, wrong network, contract not
+ * deployed). Not the same as "no such certificate": callers must not report
+ * "not found" for it.
+ */
+export class ChainUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super(`Could not read the blockchain: ${(cause as Error)?.message ?? String(cause)}`);
+    this.name = "ChainUnavailableError";
+  }
+}
+
 export async function getCertificate(certHash: Hex): Promise<OnChainRecord> {
   const registry = getRegistry();
 
@@ -34,10 +46,12 @@ export async function getCertificate(certHash: Hex): Promise<OnChainRecord> {
     registry.read.getRecord([certHash]),
   ]);
 
-  const status =
-    statusResult.status === "fulfilled"
-      ? (Number(statusResult.value) as ChainStatus)
-      : ChainStatus.Unknown;
+  // statusOf never reverts, even for a hash that was never issued (that is
+  // simply Unknown). If it fails, the chain itself is the problem.
+  if (statusResult.status === "rejected") {
+    throw new ChainUnavailableError(statusResult.reason);
+  }
+  const status = Number(statusResult.value) as ChainStatus;
 
   if (recordResult.status !== "fulfilled") {
     return {

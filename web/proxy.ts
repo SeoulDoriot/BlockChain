@@ -8,6 +8,10 @@ import { env } from "@/lib/env";
  * Two jobs:
  *   1. Refresh the Supabase session so the auth cookie does not go stale.
  *   2. Bounce unauthenticated visitors away from /dashboard/*.
+ *   3. Keep signed-in staff out of the visitor-facing entry pages: they have a
+ *      dashboard equivalent, so sending staff to the public ones feels broken.
+ *      A public result link (/verify/<id>) still opens for anyone, with a
+ *      header hint so the page can offer a way back to the dashboard.
  *
  * Do not insert code between `createServerClient` and `getClaims()`. Anything
  * in between can cause the session to be dropped, and the bug is intermittent
@@ -49,6 +53,48 @@ export async function proxy(request: NextRequest) {
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
+
+  const { pathname } = request.nextUrl;
+
+  if (data?.claims) {
+    // Visitor-only pages, each with a dashboard equivalent.
+    const toDashboard = pathname === "/" || pathname === "/login";
+    const toVerify =
+      pathname === "/verify" ||
+      pathname === "/scan" ||
+      pathname === "/verify/upload";
+
+    if (toDashboard || toVerify) {
+      const target = request.nextUrl.clone();
+      target.pathname = toVerify ? "/dashboard/verify" : "/dashboard";
+      // A ?id= lookup on /verify still has to reach its result.
+      const id = request.nextUrl.searchParams.get("id")?.trim();
+      target.search = "";
+      if (pathname === "/verify" && id) {
+        target.pathname = `/dashboard/verify/${encodeURIComponent(id)}`;
+      }
+      if (pathname === "/login") {
+        // Already signed in: honour ?next=, but only for in-dashboard paths.
+        const next = request.nextUrl.searchParams.get("next") ?? "";
+        if (next.startsWith("/dashboard") && !next.startsWith("//")) target.pathname = next;
+      }
+      const redirect = NextResponse.redirect(target);
+      for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+      return redirect;
+    }
+  }
+
+  // Tell server components whether the visitor is signed in. Only a UI hint:
+  // authorisation always goes through requireStaff(). A client-supplied copy
+  // of the header is always discarded first, so it cannot be spoofed.
+  if (data?.claims) {
+    request.headers.set("x-signed-in", "1");
+  } else {
+    request.headers.delete("x-signed-in");
+  }
+  const carried = response.cookies.getAll();
+  response = NextResponse.next({ request });
+  for (const cookie of carried) response.cookies.set(cookie);
 
   return response;
 }
