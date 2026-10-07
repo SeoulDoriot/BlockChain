@@ -3,6 +3,10 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/api/certificates/*": ["./public/certificate-templates/kit-red.png", "./public/fonts/*.ttf"],
+    "/api/certificates/*/*": ["./public/certificate-templates/kit-red.png", "./public/fonts/*.ttf"],
+  },
   // Pin the workspace root; without it Turbopack walks up and finds an
   // unrelated package-lock.json in the home directory.
   turbopack: {

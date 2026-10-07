@@ -56,6 +56,9 @@ export async function POST(
   const { data: draft, error: draftError } = await supabase
     .from("certificates")
     .insert({
+      template_id: certificate.template_id,
+      certificate_title: certificate.certificate_title,
+      description: certificate.description,
       org_id: context.org.id,
       course_id: certificate.course_id,
       recipient_name: certificate.recipient_name,
@@ -74,6 +77,9 @@ export async function POST(
 
   try {
     const result = await issueCertificate({
+      templateId: certificate.template_id,
+      certificateTitle: certificate.certificate_title,
+      description: certificate.description,
       certificateId: draft.id,
       orgId: context.org.id,
       orgSlug: context.org.slug,

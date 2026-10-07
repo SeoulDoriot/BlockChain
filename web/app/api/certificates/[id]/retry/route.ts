@@ -34,6 +34,9 @@ export async function POST(
 
   try {
     const result = await issueCertificate({
+      templateId: certificate.template_id,
+      certificateTitle: certificate.certificate_title,
+      description: certificate.description,
       certificateId: certificate.id,
       orgId: context.org.id,
       orgSlug: context.org.slug,

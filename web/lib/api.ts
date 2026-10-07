@@ -3,10 +3,14 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { AuthError, requireIssuer, type StaffContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { CertificateTemplate } from "@/lib/cert/template-layout";
 
 export interface CertificateContext {
   context: StaffContext;
   certificate: {
+    template_id: CertificateTemplate;
+    certificate_title: string;
+    description: string;
     id: string;
     org_id: string;
     course_id: string;
@@ -44,6 +48,7 @@ export async function loadCertificateForAction(
     .from("certificates")
     .select(
       `id, org_id, course_id, recipient_name, recipient_email, issued_on,
+       template_id, certificate_title, description,
        expires_on, cert_hash, tx_hash, pdf_path, status,
        course:courses!certificates_course_id_fkey ( id, code, title )`,
     )

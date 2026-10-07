@@ -16,9 +16,12 @@
     "local:chain": "cd ../contracts && npx hardhat node",
     "local:deploy": "cd ../contracts && npx hardhat ignition deploy ignition/modules/CertificateRegistry.ts --network localhost && npm run export-abi",
     "local:seed": "tsx --env-file=.env.local scripts/create-admin.ts && npm run seed",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "local:reanchor": "tsx --conditions=react-server --env-file=.env.local scripts/reanchor-local.mts"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "@pdf-lib/standard-fonts": "^1.0.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "@yudiel/react-qr-scanner": "^2.6.0",
